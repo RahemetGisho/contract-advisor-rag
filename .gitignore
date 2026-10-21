@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.coverage
+
+# data and generated artifacts (all regenerable: scripts/fetch_cuad.py, build_index)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+logs/
+
+# secrets
+.env

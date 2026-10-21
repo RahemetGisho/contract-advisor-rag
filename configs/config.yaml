@@ -1,0 +1,70 @@
+project:
+  name: contract-advisor-rag
+  random_seed: 42
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  cuad_qa_path: "data/raw/CUADv1.json"
+  eval_holdout_fraction: 0.2
+
+chunking:
+  strategy: "clause_aware" # clause_aware | fixed_size
+  chunk_size_chars: 1200
+  chunk_overlap_chars: 200
+
+embeddings:
+  # "sentence_transformers" is the real, production path (downloads
+  # BAAI/bge-small-en-v1.5 from Hugging Face). "tfidf" is a local,
+  # network-free deterministic stand-in used for tests and for
+  # developing in environments without Hugging Face access -- it is
+  # NOT a semantic embedding and should never be used to report real
+  # retrieval quality numbers.
+  provider: "sentence_transformers"
+  model_name: "BAAI/bge-small-en-v1.5"
+  dimension: 384
+  tfidf_dimension: 128 # only used when provider == "tfidf"
+
+vector_store:
+  provider: "chroma"
+  persist_dir: "data/processed/chroma_index"
+  collection_name: "contracts"
+
+retrieval:
+  top_k: 5
+  score_threshold: 0.0 # minimum similarity to consider a chunk relevant
+
+llm:
+  # "groq" is the real, production provider (requires GROQ_API_KEY).
+  # "mock" is a deterministic test double used in unit tests and in
+  # any environment without network access to Groq -- never used to
+  # report real generation quality.
+  provider: "groq"
+  model_name: "llama-3.1-8b-instant"
+  temperature: 0.0
+  max_tokens: 512
+  timeout_seconds: 30 # per attempt; a hung provider must not hang the request
+  max_retries: 2
+
+generation:
+  min_context_chunks: 1 # below this, abstain rather than generate
+  abstain_message: "I don't have enough information in this contract to answer that."
+
+evaluation:
+  ragas_eval_set_size: 40
+  quality_gate:
+    min_faithfulness: 0.80
+    min_answer_relevancy: 0.75
+    min_context_precision: 0.70
+    min_context_recall: 0.70
+  retrieval_quality_gate:
+    min_recall_at_k: 0.70
+    min_mrr: 0.60
+
+api:
+  query_log_path: "logs/queries.jsonl"
+  require_api_key: true # fail closed: no key configured means /query is refused
+  rate_limit_per_minute: 30 # per API key (or per client IP when auth is off)
+
+logging:
+  level: "INFO"
